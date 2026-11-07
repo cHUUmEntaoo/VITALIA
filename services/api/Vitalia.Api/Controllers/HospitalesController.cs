@@ -30,4 +30,30 @@ public class HospitalesController : ControllerBase
 
         return Ok(hospitalDtos);
     }
+
+    [HttpGet("{id:int}")]
+    public ActionResult<HospitalResponseDto> ObternerHospitalPorId(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("El identificador debe ser mayor que cero.");
+        }
+
+        var hospital = _hospitalService.ObtenerHospitalPorId(id);
+
+        if (hospital is null)
+        {
+            return NotFound("El hospital solicitado no existe.");
+        }
+
+        var respuesta = new HospitalResponseDto
+        {
+            Id = hospital.Id,
+            Nombre = hospital.Nombre,
+            Ciudad = hospital.Ciudad
+        };
+
+        return Ok(respuesta);
+        
+    }
 }
