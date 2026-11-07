@@ -1,5 +1,5 @@
-
 using Microsoft.AspNetCore.Mvc;
+using Vitalia.Api.Services;
 
 namespace Vitalia.Api.Controllers;
 
@@ -7,31 +7,17 @@ namespace Vitalia.Api.Controllers;
 [Route("api/[controller]")]
 public class HospitalesController : ControllerBase
 {
-    [HttpGet]
-    public IActionResult ObtenerHospitales()
-    {
-        var hospitales = new[]
-        {
-            new
-            {
-                Id = 1,
-                Nombre = "Centro VITALIA Santo Domingo",
-                Ciudad = "Santo Domingo"
-            },
-            new
-            {
-                Id = 2,
-                Nombre = "Centro VITALIA Bávaro",
-                Ciudad = "Bávaro"
-            },
-            new
-            {
-                Id = 3,
-                Nombre = "Centro VITALIA Santiago",
-                Ciudad = "Santiago"
-            }
-        };
+    private readonly HospitalService _hospitalService;
 
+    public HospitalesController(HospitalService hospitalService)
+    {
+        _hospitalService = hospitalService;
+    }
+
+    [HttpGet]
+    public IActionResult GetHospitales()
+    {
+        var hospitales = _hospitalService.ObtenerHospitales();
         return Ok(hospitales);
     }
 }
