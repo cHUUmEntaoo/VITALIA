@@ -1,8 +1,10 @@
-using Vitalia.Api.Models;   
+
+using Vitalia.Api.Models;
+using Vitalia.Api.Services.Interfaces;
 
 namespace Vitalia.Api.Services;
 
-public class HospitalService
+public class HospitalService : IHospitalService
 {
     public List<Hospital> ObtenerHospitales()
     {
