@@ -32,4 +32,10 @@ public class HospitalService : IHospitalService
 
         return hospitales;
     }
+
+    public Hospital? ObtenerHospitalPorId(int id)
+    {
+        var hospitales = ObtenerHospitales();
+        return hospitales.FirstOrDefault(hospital => hospital.Id == id);
+    }
 }
