@@ -6,10 +6,6 @@ public interface IHospitalService
 {
     List<Hospital> ObtenerHospitales();
 
-    public Hospital? ObtenerHospitalPorId(int id)
-    {
-        var hospitales = ObtenerHospitales();
-        return hospitales.FirstOrDefault(h => h.Id == id);
-        
-    }
+    Hospital? ObtenerHospitalPorId(int id);
 }
+

@@ -32,7 +32,7 @@ public class HospitalesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public ActionResult<HospitalResponseDto> ObternerHospitalPorId(int id)
+    public ActionResult<HospitalResponseDto> ObtenerHospitalPorId(int id)
     {
         if (id <= 0)
         {
