@@ -36,14 +36,22 @@ public class HospitalesController : ControllerBase
     {
         if (id <= 0)
         {
-            return BadRequest("El identificador debe ser mayor que cero.");
+            return Problem(
+                statusCode: 400,
+                title: "Identificador inválido",
+                detail: "El identificador debe ser mayor que  cero ."
+            );
         }
 
         var hospital = _hospitalService.ObtenerHospitalPorId(id);
 
         if (hospital is null)
         {
-            return NotFound("El hospital solicitado no existe.");
+            return Problem(
+                statusCode: 404,
+                title: "Hospital no Encontrado",
+                detail: "El hospital solicitado no existe."
+            );
         }
 
         var respuesta = new HospitalResponseDto
