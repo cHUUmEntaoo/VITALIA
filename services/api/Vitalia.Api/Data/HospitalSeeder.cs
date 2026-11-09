@@ -5,7 +5,7 @@ public static class HospitalSeeder
 {
     public static void Seed(VitaliaDbContext context)
     {
-        var hospitalesIniciales = new[] 
+        var hospitalesIniciales = new[]
         {
             new Hospital
             {
@@ -44,6 +44,6 @@ public static class HospitalSeeder
                 context.SaveChanges();
             }
         }
-    }       
-    
+    }
+
 }
