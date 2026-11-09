@@ -24,15 +24,35 @@ builder.Services.AddDbContext<VitaliaDbContext>(options =>
 });
 
 
-builder.Services
-    .AddIdentityCore<Usuario>(options =>
-    {
-        options.User.RequireUniqueEmail = true;
-    })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<VitaliaDbContext>();
 
-    
+
+builder.Services.AddIdentityCore<Usuario>(options =>
+{
+    // Configuración de usuarios
+    options.User.RequireUniqueEmail = true;
+
+    // Política de contraseñas
+    options.Password.RequiredLength = 12;
+    options.Password.RequiredUniqueChars = 4;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+
+    // Protección frente a intentos fallidos
+    options.Lockout.DefaultLockoutTimeSpan =
+        TimeSpan.FromMinutes(15);
+
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<VitaliaDbContext>()
+.AddSignInManager();
+
+
+
+
 builder.Services
     .AddAuthentication(IdentityConstants.BearerScheme)
     .AddBearerToken(IdentityConstants.BearerScheme);
@@ -67,7 +87,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection(); 
+app.UseHttpsRedirection();
 
 app.UseAuthorization();
 

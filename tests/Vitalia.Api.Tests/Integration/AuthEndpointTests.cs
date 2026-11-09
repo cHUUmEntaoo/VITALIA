@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Authentication;
 using System.Net.Http.Headers;
 using Xunit;
+using System.Net.Http.Json;
 
 namespace Vitalia.Api.Tests.Integration;
 
@@ -37,7 +38,7 @@ public class AuthEndpointTests
         );
     }
 
-    
+
 [Fact]
 public async Task ObtenerHospitales_SinToken_DebeResponder200()
 {
@@ -174,6 +175,46 @@ public async Task ObtenerUsuarioActual_ConUsuarioAutenticado_DebeResponder200()
         "Paciente",
         resultado.GetProperty("roles")[0].GetString());
 }
+
+
+[Fact]
+public async Task RegistrarPaciente_ConDatosInvalidos_DebeResponder400()
+{
+    // Arrange: iniciar la API en entorno Testing
+    using var factory = new WebApplicationFactory<Program>()
+        .WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Testing");
+        });
+
+    using var cliente = factory.CreateClient(
+        new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+    // Simular un registro con datos incorrectos
+    var solicitud = new
+    {
+        nombre = "A",
+        apellido = "B",
+        correoElectronico = "correo-invalido",
+        contrasena = "123"
+    };
+
+    // Act: enviar la solicitud de registro
+    using var respuesta = await cliente.PostAsJsonAsync(
+        "/api/auth/registro-paciente",
+        solicitud
+    );
+
+    // Assert: el servidor debe rechazar los datos
+    Assert.Equal(
+        HttpStatusCode.BadRequest,
+        respuesta.StatusCode
+    );
+}
+
 
 
 
