@@ -32,6 +32,14 @@ builder.Services
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<VitaliaDbContext>();
 
+    
+builder.Services
+    .AddAuthentication(IdentityConstants.BearerScheme)
+    .AddBearerToken(IdentityConstants.BearerScheme);
+
+builder.Services.AddAuthorization();
+
+
 
 builder.Services.AddScoped<IHospitalService, HospitalSqlService>();
 
@@ -66,3 +74,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+public partial class Program { }
