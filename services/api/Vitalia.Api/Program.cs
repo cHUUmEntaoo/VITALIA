@@ -48,7 +48,9 @@ builder.Services.AddIdentityCore<Usuario>(options =>
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<VitaliaDbContext>()
-.AddSignInManager();
+.AddSignInManager()
+.AddDefaultTokenProviders();
+
 
 
 
@@ -87,11 +89,14 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 app.Run();
 public partial class Program { }

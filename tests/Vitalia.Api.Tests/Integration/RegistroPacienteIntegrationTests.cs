@@ -505,6 +505,251 @@ public async Task IniciarSesion_CincoIntentosFallidos_DebeBloquearCuenta()
 }
 
 
+[Fact]
+public async Task ConfirmacionCorreo_ConTokenValido_DebeConfirmarEmail()
+{
+    using var factory = new RegistroPacienteTestFactory();
+    using var scope = factory.Services.CreateScope();
+
+    var db = scope.ServiceProvider
+        .GetRequiredService<VitaliaDbContext>();
+
+    await db.Database.EnsureCreatedAsync();
+
+    var userManager = scope.ServiceProvider
+        .GetRequiredService<UserManager<Usuario>>();
+
+    var usuario = new Usuario
+    {
+        UserName = "confirmacion@vitalia.test",
+        Email = "confirmacion@vitalia.test",
+        Nombre = "Paciente",
+        Apellido = "Confirmacion",
+        FechaRegistroUtc = DateTime.UtcNow
+    };
+
+    var resultadoRegistro = await userManager.CreateAsync(
+        usuario,
+        "Vitalia#2026Segura");
+
+    Assert.True(resultadoRegistro.Succeeded);
+
+    // El correo comienza sin confirmar.
+    Assert.False(
+        await userManager.IsEmailConfirmedAsync(usuario));
+
+    // Generar el token de confirmacion.
+    var token = await userManager
+        .GenerateEmailConfirmationTokenAsync(usuario);
+
+    Assert.False(string.IsNullOrWhiteSpace(token));
+
+    // Confirmar el correo mediante Identity.
+    var resultadoConfirmacion = await userManager
+        .ConfirmEmailAsync(usuario, token);
+
+    Assert.True(resultadoConfirmacion.Succeeded);
+
+    // Verificar que el correo quedo confirmado.
+    Assert.True(
+        await userManager.IsEmailConfirmedAsync(usuario));
+}
+
+
+[Fact]
+public async Task ConfirmacionCorreo_ConTokenInvalido_NoDebeConfirmarEmail()
+{
+    using var factory = new RegistroPacienteTestFactory();
+    using var scope = factory.Services.CreateScope();
+
+    var db = scope.ServiceProvider
+        .GetRequiredService<VitaliaDbContext>();
+
+    await db.Database.EnsureCreatedAsync();
+
+    var userManager = scope.ServiceProvider
+        .GetRequiredService<UserManager<Usuario>>();
+
+    var usuario = new Usuario
+    {
+        UserName = "token.invalido@vitalia.test",
+        Email = "token.invalido@vitalia.test",
+        Nombre = "Paciente",
+        Apellido = "Prueba",
+        FechaRegistroUtc = DateTime.UtcNow
+    };
+
+    var resultadoRegistro = await userManager.CreateAsync(
+        usuario,
+        "Vitalia#2026Segura");
+
+    Assert.True(resultadoRegistro.Succeeded);
+
+    // Intentar confirmar con un token incorrecto.
+    var resultadoConfirmacion = await userManager.ConfirmEmailAsync(
+        usuario,
+        "token-invalido");
+
+    // Identity debe rechazar la confirmacion.
+    Assert.False(resultadoConfirmacion.Succeeded);
+
+    // El correo debe continuar sin confirmar.
+    Assert.False(
+        await userManager.IsEmailConfirmedAsync(usuario));
+}
+
+
+[Fact]
+public async Task ConfirmarCorreo_ConTokenValido_DebeResponder200()
+{
+    using var factory = new RegistroPacienteTestFactory();
+
+    using var cliente = factory.CreateClient(
+        new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+    string usuarioId;
+    string token;
+
+    // Preparar el usuario y generar el token.
+    using (var scope = factory.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider
+            .GetRequiredService<VitaliaDbContext>();
+
+        await db.Database.EnsureCreatedAsync();
+
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<Usuario>>();
+
+        var usuario = new Usuario
+        {
+            UserName = "confirmacion.http@vitalia.test",
+            Email = "confirmacion.http@vitalia.test",
+            Nombre = "Paciente",
+            Apellido = "Confirmacion",
+            FechaRegistroUtc = DateTime.UtcNow
+        };
+
+        var resultadoRegistro = await userManager.CreateAsync(
+            usuario,
+            "Vitalia#2026Segura");
+
+        Assert.True(resultadoRegistro.Succeeded);
+
+        Assert.False(
+            await userManager.IsEmailConfirmedAsync(usuario));
+
+        usuarioId = usuario.Id;
+
+        token = await userManager
+            .GenerateEmailConfirmationTokenAsync(usuario);
+    }
+
+    // Enviar el token al endpoint HTTP.
+    var solicitud = new
+    {
+        usuarioId,
+        token
+    };
+
+    using var respuesta = await cliente.PostAsJsonAsync(
+        "/api/auth/confirmar-correo",
+        solicitud);
+
+    Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+
+    // Verificar el cambio persistido en la base de datos.
+    using (var scope = factory.Services.CreateScope())
+    {
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<Usuario>>();
+
+        var usuario = await userManager.FindByIdAsync(usuarioId);
+
+        Assert.NotNull(usuario);
+
+        Assert.True(
+            await userManager.IsEmailConfirmedAsync(usuario));
+    }
+}
+
+
+
+[Fact]
+public async Task ConfirmarCorreo_ConTokenInvalido_DebeResponder400()
+{
+    using var factory = new RegistroPacienteTestFactory();
+
+    using var cliente = factory.CreateClient(
+        new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+    string usuarioId;
+
+    using (var scope = factory.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider
+            .GetRequiredService<VitaliaDbContext>();
+
+        await db.Database.EnsureCreatedAsync();
+
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<Usuario>>();
+
+        var usuario = new Usuario
+        {
+            UserName = "invalido.http@vitalia.test",
+            Email = "invalido.http@vitalia.test",
+            Nombre = "Paciente",
+            Apellido = "Prueba",
+            FechaRegistroUtc = DateTime.UtcNow
+        };
+
+        var resultado = await userManager.CreateAsync(
+            usuario,
+            "Vitalia#2026Segura");
+
+        Assert.True(resultado.Succeeded);
+
+        usuarioId = usuario.Id;
+    }
+
+    // Intentar confirmar mediante HTTP con un token falso.
+    using var respuesta = await cliente.PostAsJsonAsync(
+        "/api/auth/confirmar-correo",
+        new
+        {
+            usuarioId,
+            token = "token-invalido"
+        });
+
+    Assert.Equal(
+        HttpStatusCode.BadRequest,
+        respuesta.StatusCode);
+
+    // Comprobar que la cuenta sigue sin confirmar.
+    using (var scope = factory.Services.CreateScope())
+    {
+        var userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<Usuario>>();
+
+        var usuario = await userManager.FindByIdAsync(
+            usuarioId);
+
+        Assert.NotNull(usuario);
+
+        Assert.False(
+            await userManager.IsEmailConfirmedAsync(usuario));
+    }
+}
+
+
+
 
 
 }

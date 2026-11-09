@@ -162,4 +162,40 @@ public async Task<IActionResult> IniciarSesion(
 }
 
 
+[HttpPost("confirmar-correo")]
+[AllowAnonymous]
+public async Task<IActionResult> ConfirmarCorreo(
+    [FromBody] ConfirmarCorreoRequest solicitud)
+{
+    var usuario = await _userManager.FindByIdAsync(
+        solicitud.UsuarioId);
+
+    if (usuario is null)
+    {
+        return BadRequest(new
+        {
+            mensaje = "Solicitud de confirmacion invalida."
+        });
+    }
+
+    var resultado = await _userManager.ConfirmEmailAsync(
+        usuario,
+        solicitud.Token);
+
+    if (!resultado.Succeeded)
+    {
+        return BadRequest(new
+        {
+            mensaje = "Solicitud de confirmacion invalida."
+        });
+    }
+
+    return Ok(new
+    {
+        mensaje = "Correo confirmado correctamente."
+    });
+}
+
+
+
 }
