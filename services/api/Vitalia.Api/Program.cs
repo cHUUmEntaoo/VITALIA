@@ -5,8 +5,23 @@ using Vitalia.Api.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
 builder.Services.AddDbContext<VitaliaDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    );
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.UseSeeding((context, _) =>
+        {
+            HospitalSeeder.Seed((VitaliaDbContext)context);
+        });
+    }
+});
+
+
 builder.Services.AddScoped<IHospitalService, HospitalSqlService>();
 
 builder.Services.AddControllers();
