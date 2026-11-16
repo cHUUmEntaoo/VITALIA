@@ -1,0 +1,176 @@
+
+.vitalia-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.vitalia-brand {
+  background: #173d32;
+  color: #f8f4e9;
+  padding: 55px 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-symbol {
+  color: #c6a76a;
+  font-size: 34px;
+}
+
+.brand-name {
+  font-size: 27px;
+  letter-spacing: 5px;
+  font-weight: bold;
+}
+
+.brand-subtitle,
+.access-eyebrow {
+  color: #c6a76a;
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+
+.brand-content h1 {
+  font-size: clamp(38px, 4vw, 64px);
+  line-height: 1.15;
+  font-weight: normal;
+  max-width: 560px;
+}
+
+.brand-content h1 span {
+  color: #c6a76a;
+}
+
+.brand-description {
+  max-width: 420px;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #d9ded6;
+}
+
+.brand-footer {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.vitalia-access {
+  background: #f8f4e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.access-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.access-card h2 {
+  color: #173d32;
+  font-size: 38px;
+  font-weight: normal;
+  margin: 20px 0;
+}
+
+.access-description {
+  color: #68736d;
+  line-height: 1.8;
+}
+
+.access-placeholder {
+  margin-top: 35px;
+  padding: 20px;
+  border: 1px solid #d7c9ab;
+  color: #173d32;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.access-note {
+  margin-top: 25px;
+  font-size: 13px;
+  color: #8b948e;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .vitalia-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .vitalia-brand {
+    min-height: 360px;
+    padding: 35px;
+  }
+
+  .vitalia-access {
+    min-height: 400px;
+  }
+}
+
+
+.access-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.access-form label {
+  color: #173d32;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.access-form input {
+  width: 100%;
+  padding: 15px 16px;
+  margin-bottom: 12px;
+  background: #fffdf8;
+  border: 1px solid #d7c9ab;
+  border-radius: 8px;
+  color: #173d32;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+.access-form input:focus {
+  outline: 2px solid #b79b5b;
+  outline-offset: 2px;
+}
+
+.access-button {
+  padding: 16px;
+  background: #173d32;
+  color: #f8f4e9;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.access-button:hover {
+  background: #245646;
+}
+
+.access-button:focus-visible {
+  outline: 2px solid #b79b5b;
+  outline-offset: 3px;
+}
+
+.form-message {
+  color: #68736d;
+  font-size: 13px;
+  line-height: 1.6;
+}

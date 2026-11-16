@@ -72,15 +72,28 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
 
+    // Inicializar roles institucionales.
     var roleManager = scope.ServiceProvider
         .GetRequiredService<RoleManager<IdentityRole>>();
 
     await RoleSeeder.SeedAsync(roleManager);
+
+    // Aprovisionar el administrador inicial
+    // únicamente cuando esté habilitado.
+    var userManager = scope.ServiceProvider
+        .GetRequiredService<UserManager<Usuario>>();
+
+    await AdministradorInicialSeeder.SeedAsync(
+        userManager,
+        app.Configuration,
+        app.Environment);
 }
+
 
 
 // Configure the HTTP request pipeline.

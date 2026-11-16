@@ -50,3 +50,8 @@ coverage/
 # Archivos del sistema operativo
 .DS_Store
 Thumbs.db
+**/backups/
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+**/secrets.json

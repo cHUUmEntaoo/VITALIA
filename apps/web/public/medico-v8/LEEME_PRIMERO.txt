@@ -1,0 +1,67 @@
+VITALIA v8 — CONSULTORIO MÉDICO INTERACTIVO
+Proyecto académico / Diseño de entradas — Noviembre de 2026
+
+IMPORTANTE: TODOS LOS DATOS SON FICTICIOS. NO INTRODUCIR DATOS MÉDICOS REALES.
+Esta versión NO es un sistema clínico en producción: no tiene servidor, base de datos
+compartida, firma electrónica válida, autenticación real, historia clínica oficial,
+servicios de laboratorio, farmacia, interoperabilidad ni comprobantes legales.
+
+CÓMO ABRIR
+1. Descomprime el ZIP en una carpeta. No abras el HTML directamente desde dentro del ZIP.
+2. Abre index.html en Microsoft Edge, Google Chrome o Firefox.
+3. En la parte superior, pulsa «Consultorio médico interactivo».
+   Alternativamente, elige la sección «Médico» en la presentación navegable.
+4. En la pantalla de acceso del médico, pulsa «Entrar al consultorio interactivo».
+   Este acceso es DEMO; no verifica una contraseña real.
+
+RECORRIDO PRINCIPAL PARA PRESENTAR AL PROFESOR
+1. Dashboard → Mi agenda.
+2. En la jornada de hoy, selecciona Elena Rivera, que ya figura en recepción.
+3. Opcionalmente pulsa «Confirmar presencia» y «Iniciar consulta».
+4. En Preparación, confirma identidad, alergias e historial.
+5. En Signos vitales, escribe y guarda datos inventados.
+6. En Nota SOAP, redacta S, O, A y P. Se guarda automáticamente en el navegador.
+7. Añade y edita un diagnóstico ficticio.
+8. Crea órdenes de laboratorio o imágenes de ejemplo y edítalas o anúlalas.
+9. Crea una receta de demostración. Debes haber revisado alergias.
+10. Propón una cita de seguimiento, comprobando que el cupo no esté ocupado.
+11. En Firmar y cerrar, revisa las verificaciones obligatorias.
+12. Firma y cierra la atención (simulación, sin valor médico ni legal).
+13. Vuelve a la agenda: la cita aparece «Atendida».
+14. En Mis pacientes → Elena Rivera → Consultas y notas, abre la nueva nota.
+15. En el expediente revisa el historial ficticio desde los 8 años (2010).
+
+CAMINOS ALTERNATIVOS
+- Laura Méndez no tiene llegada verificada: no se permite iniciar su consulta.
+- El botón «Simular llegada de recepción» permite demostrar un evento del otro rol.
+- Cita: reprogramar, cancelar, confirmar presencia o marcar ausente.
+- Horarios: bloquear, habilitar y detectar reservas en conflicto.
+- Notas incompletas: el cierre permanece deshabilitado.
+- Alergias no revisadas: bloquean la creación de receta.
+- Nota firmada: solo lectura, pero permite añadir adenda con autor y fecha.
+- Gestión de antecedentes: registro agregado a la cronología con trazabilidad.
+- Los cambios generan eventos simulados para Médico, Paciente, Recepción y Administrador,
+  visibles en Notificaciones. No modifica en tiempo real las pantallas estáticas
+  originales de los otros roles.
+
+GUARDAR / CONTINUAR
+- Los cambios ficticios se guardan en el almacenamiento local del navegador cuando
+  este lo permite. Se conservan al recargar en ese mismo navegador y carpeta/origen.
+- Mi perfil → Exportar datos demo: genera un JSON para conservar el avance.
+- Mi perfil → Importar demo guardada: restaura ese archivo exportado.
+- Mi perfil → Restablecer demo: reinicia pacientes, visitas y cambios ficticios.
+- No uses almacenamiento del navegador para información confidencial real.
+
+ESTILO Y ALCANCE
+- Verde oliva oscuro, marfil, detalles dorados, barra lateral y estilo VITALIA original.
+- Todas las imágenes del prototipo anterior, incluidos Paciente, Administrador y
+  Recepcionista, se mantienen con los mismos bytes que en la v7.
+- SOLO el portal médico es ahora un espacio con formularios y acciones funcionales.
+- El resto de roles permanece en las pantallas de diseño navegables anteriores.
+
+ARCHIVOS PRINCIPALES
+index.html  : portada y navegación original, incluye acceso al nuevo consultorio
+medico.html : consultorio médico funcional
+medico.js   : comportamiento del prototipo
+medico.css  : diseño del consultorio
+vitalia_*.jpg y vitalia_medico_*.jpg: pantallas originales preservadas
