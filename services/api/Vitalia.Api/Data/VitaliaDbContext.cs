@@ -224,6 +224,8 @@ modelBuilder.Entity<NotaClinica>(entity =>
     entity.Property(n => n.Indicaciones).HasMaxLength(4000);
     entity.Property(n => n.CreadaUtc).IsRequired();
     entity.Property(n => n.ActualizadaUtc).IsRequired();
+    // La firma es un token de concurrencia: el borrador solo se actualiza si sigue sin firmar.
+    entity.Property(n => n.FirmadaUtc).IsConcurrencyToken();
 });
 
 modelBuilder.Entity<AuditoriaClinica>(entity =>
