@@ -56,6 +56,19 @@ async function solicitar<T>(ruta: string, token?: string, metodo = 'GET', datos?
   return respuesta.json() as Promise<T>
 }
 
+// Recupera todas las páginas, sin ocultar citas ni pacientes posteriores al registro 500.
+async function solicitarTodasPaginas<T>(ruta: string, token: string): Promise<T[]> {
+  const tamanoPagina = 100
+  const resultado: T[] = []
+  for (let pagina = 1; pagina <= 1000; pagina++) {
+    const separador = ruta.includes('?') ? '&' : '?'
+    const lote = await solicitar<T[]>(`${ruta}${separador}pagina=${pagina}&tamanoPagina=${tamanoPagina}`, token)
+    resultado.push(...lote)
+    if (lote.length < tamanoPagina) return resultado
+  }
+  throw new Error('La lista supera el límite de páginas. Usa filtros más específicos.')
+}
+
 function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -104,6 +117,7 @@ function App() {
   const [medicoHorarios, setMedicoHorarios] = useState('')
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [cargandoHorarios, setCargandoHorarios] = useState(false)
+  const [horariosCargadosDe, setHorariosCargadosDe] = useState('')
   const rol: Rol | null = usuario?.roles.includes('Administrador') ? 'Administrador'
     : usuario?.roles.includes('Recepcionista') ? 'Recepcionista'
       : usuario?.roles.includes('Medico') ? 'Medico' : null
@@ -121,11 +135,11 @@ function App() {
       ])
       setHospitales(h); setEspecialidades(e); setMedicos(m); setResumen(r)
       if (rol === 'Medico') {
-        setCitas(await solicitar<Cita[]>('institucional/mi-agenda', token))
+        setCitas(await solicitarTodasPaginas<Cita>('institucional/mi-agenda', token))
       } else {
         const [lista, personas] = await Promise.all([
-          solicitar<Cita[]>('institucional/citas', token),
-          solicitar<Paciente[]>('institucional/pacientes', token),
+          solicitarTodasPaginas<Cita>('institucional/citas', token),
+          solicitarTodasPaginas<Paciente>('institucional/pacientes', token),
         ])
         setCitas(lista); setPacientes(personas)
       }
@@ -139,12 +153,18 @@ function App() {
   useEffect(() => { void cargarDatos() }, [cargarDatos])
 
   useEffect(() => {
-    if (!token || vista !== 'horarios' || !medicoHorarios) { setHorarios([]); return }
+    if (!token || vista !== 'horarios' || !medicoHorarios) { setHorarios([]); setHorariosCargadosDe(''); return }
     let activo = true
+    setHorarios([])
+    setHorariosCargadosDe('')
     setCargandoHorarios(true)
     solicitar<(Horario & { id: number })[]>(`institucional/medicos/${medicoHorarios}/horarios`, token)
-      .then(datos => { if (activo) setHorarios(datos.map(h => ({ ...h, horaInicio: h.horaInicio.slice(0, 5), horaFin: h.horaFin.slice(0, 5) }))) })
-      .catch(e => { if (activo) setError(e instanceof Error ? e.message : 'No se pudieron consultar horarios.') })
+      .then(datos => {
+        if (!activo) return
+        setHorarios(datos.map(h => ({ ...h, horaInicio: h.horaInicio.slice(0, 5), horaFin: h.horaFin.slice(0, 5) })))
+        setHorariosCargadosDe(medicoHorarios)
+      })
+      .catch(e => { if (activo) { setHorarios([]); setHorariosCargadosDe(''); setError(e instanceof Error ? e.message : 'No se pudieron consultar horarios.') } })
       .finally(() => { if (activo) setCargandoHorarios(false) })
     return () => { activo = false }
   }, [token, vista, medicoHorarios])
@@ -298,9 +318,9 @@ function App() {
             </form></section>
         </div>}
         {vista === 'horarios' && rol === 'Administrador' && <section className="panel"><div className="panel-title"><h3>Horarios de consulta</h3><small>Reemplaza los tramos del médico seleccionado</small></div>
-          <label className="field-narrow">Profesional<select value={medicoHorarios} onChange={e => setMedicoHorarios(e.target.value)}><option value="">Selecciona un médico</option>{medicos.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}</select></label>
+          <label className="field-narrow">Profesional<select value={medicoHorarios} onChange={e => { setHorarios([]); setHorariosCargadosDe(''); setCargandoHorarios(true); setMedicoHorarios(e.target.value) }}><option value="">Selecciona un médico</option>{medicos.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}</select></label>
           {cargandoHorarios && <p className="muted">Consultando horarios…</p>}
-          {medicoHorario && <><div className="table-wrap"><table><thead><tr><th>Día</th><th>Sede</th><th>Inicio</th><th>Fin</th><th>Intervalo</th><th></th></tr></thead><tbody>{horarios.map((h, i) => <tr key={i}>
+          {medicoHorario && !cargandoHorarios && horariosCargadosDe === medicoHorarios && <><div className="table-wrap"><table><thead><tr><th>Día</th><th>Sede</th><th>Inicio</th><th>Fin</th><th>Intervalo</th><th></th></tr></thead><tbody>{horarios.map((h, i) => <tr key={i}>
             <td><select value={h.diaSemana} onChange={e => setHorarios(actual => actual.map((x, j) => j === i ? { ...x, diaSemana: Number(e.target.value) } : x))}>{DIAS.map((d, idx) => <option key={d} value={idx}>{d}</option>)}</select></td>
             <td><select value={h.hospitalId} onChange={e => setHorarios(actual => actual.map((x, j) => j === i ? { ...x, hospitalId: Number(e.target.value) } : x))}>{hospitales.filter(s => medicoHorario.hospitalIds.includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.ciudad}</option>)}</select></td>
             <td><input type="time" value={h.horaInicio} onChange={e => setHorarios(actual => actual.map((x, j) => j === i ? { ...x, horaInicio: e.target.value } : x))} /></td>
