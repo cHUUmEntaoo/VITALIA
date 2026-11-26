@@ -1,0 +1,81 @@
+name: VITALIA - Integracion continua
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feat/backend-medicos-especialidades]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vitalia-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests:
+    name: API .NET 10 y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DOTNET_ENVIRONMENT: Testing
+      ASPNETCORE_ENVIRONMENT: Testing
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+      - name: Instalar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restaurar paquetes de pruebas y API
+        run: dotnet restore tests/Vitalia.Api.Tests/Vitalia.Api.Tests.csproj
+      - name: Compilar API y pruebas
+        run: dotnet build tests/Vitalia.Api.Tests/Vitalia.Api.Tests.csproj --configuration Release --no-restore
+      - name: Ejecutar pruebas unitarias e integracion aisladas
+        run: dotnet test tests/Vitalia.Api.Tests/Vitalia.Api.Tests.csproj --configuration Release --no-build --verbosity normal
+
+  portal-web:
+    name: Portal web React
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+      - name: Instalar Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Instalar dependencias bloqueadas
+        run: npm ci
+      - name: Compilar TypeScript y Vite
+        run: npm run build
+
+  paciente-android:
+    name: Paciente Android - TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+      - name: Instalar Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Instalar dependencias bloqueadas
+        run: npm ci
+      - name: Validar TypeScript
+        run: npx tsc --noEmit

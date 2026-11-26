@@ -1,0 +1,107 @@
+{
+  "VitaliaAgenda": {
+    "AniosHabilitados": [
+      2026,
+      2027
+    ],
+    "Feriados": [
+      {
+        "Fecha": "2026-01-01",
+        "Motivo": "Año Nuevo"
+      },
+      {
+        "Fecha": "2026-01-05",
+        "Motivo": "Santos Reyes (trasladado)"
+      },
+      {
+        "Fecha": "2026-01-21",
+        "Motivo": "Nuestra Señora de la Altagracia"
+      },
+      {
+        "Fecha": "2026-01-26",
+        "Motivo": "Natalicio de Duarte"
+      },
+      {
+        "Fecha": "2026-02-27",
+        "Motivo": "Independencia Nacional"
+      },
+      {
+        "Fecha": "2026-04-03",
+        "Motivo": "Viernes Santo"
+      },
+      {
+        "Fecha": "2026-05-04",
+        "Motivo": "Día del Trabajo (trasladado)"
+      },
+      {
+        "Fecha": "2026-06-04",
+        "Motivo": "Corpus Christi"
+      },
+      {
+        "Fecha": "2026-08-16",
+        "Motivo": "Restauración de la República"
+      },
+      {
+        "Fecha": "2026-09-24",
+        "Motivo": "Nuestra Señora de las Mercedes"
+      },
+      {
+        "Fecha": "2026-11-09",
+        "Motivo": "Día de la Constitución (trasladado)"
+      },
+      {
+        "Fecha": "2026-12-25",
+        "Motivo": "Navidad"
+      },
+      {
+        "Fecha": "2027-01-01",
+        "Motivo": "Año Nuevo"
+      },
+      {
+        "Fecha": "2027-01-04",
+        "Motivo": "Santos Reyes (trasladado)"
+      },
+      {
+        "Fecha": "2027-01-21",
+        "Motivo": "Nuestra Señora de la Altagracia"
+      },
+      {
+        "Fecha": "2027-01-25",
+        "Motivo": "Natalicio de Duarte (trasladado)"
+      },
+      {
+        "Fecha": "2027-02-27",
+        "Motivo": "Independencia Nacional"
+      },
+      {
+        "Fecha": "2027-03-26",
+        "Motivo": "Viernes Santo"
+      },
+      {
+        "Fecha": "2027-05-01",
+        "Motivo": "Día del Trabajo"
+      },
+      {
+        "Fecha": "2027-05-27",
+        "Motivo": "Corpus Christi"
+      },
+      {
+        "Fecha": "2027-08-16",
+        "Motivo": "Restauración de la República"
+      },
+      {
+        "Fecha": "2027-09-24",
+        "Motivo": "Nuestra Señora de las Mercedes"
+      },
+      {
+        "Fecha": "2027-11-06",
+        "Motivo": "Día de la Constitución"
+      },
+      {
+        "Fecha": "2027-12-25",
+        "Motivo": "Navidad"
+      }
+    ],
+    "Ausencias": []
+  }
+}

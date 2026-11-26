@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { leerPacienteDemo } from '@/lib/paciente-demo';
+import { obtenerPerfil, cerrarSesion } from '@/lib/vitalia-api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const C = {
@@ -43,7 +43,7 @@ export default function PacienteScreen() {
 
   useFocusEffect(useCallback(() => {
     let activo = true;
-    leerPacienteDemo().then((p) => { if (activo) setNombre(p.nombre); }).catch(() => {});
+    obtenerPerfil().then((p) => { if (activo) setNombre(p.nombre); }).catch(() => {});
     return () => { activo = false; };
   }, []));
 
@@ -57,7 +57,7 @@ export default function PacienteScreen() {
   function guardarDemo() {
     Alert.alert(
       'Demostración',
-      'Los datos de este formulario son temporales. Todavía no se guardan en el servidor.'
+      'Ve al panel de perfil para guardar tus datos en el servidor.'
     );
   }
 
@@ -137,7 +137,7 @@ export default function PacienteScreen() {
         <View style={styles.body}>
           <View style={styles.demo}>
             <Text style={styles.demoText}>
-              VITALIA · VERSIÓN DE DEMOSTRACIÓN
+              VITALIA · CONECTADO AL SERVIDOR
             </Text>
           </View>
 
@@ -195,7 +195,7 @@ export default function PacienteScreen() {
 
               {opcion(
                 'Notificaciones',
-                'Avisos de demostración',
+                'Avisos de tu cuenta',
                 '◉',
                 () => router.push({ pathname: '/panel', params: { vista: 'notificaciones' } })
               )}
@@ -358,6 +358,9 @@ export default function PacienteScreen() {
             </View>
           )}
 
+          <Pressable onPress={async () => { await cerrarSesion(); router.replace('/acceso'); }} accessibilityRole="button" style={{ alignSelf: 'center', padding: 15 }}>
+            <Text style={{ color: C.verde, fontWeight: '700' }}>Cerrar sesión</Text>
+          </Pressable>
           <Text style={styles.footer}>
             VITALIA · CUIDAMOS DE TI
           </Text>
