@@ -68,7 +68,26 @@ public sealed class NotaClinicaConcurrenciaTests
 
         var borrador = await editorObsoleto.NotasClinicas.SingleAsync(n => n.Id == notaId);
         var firma = await firmante.NotasClinicas.SingleAsync(n => n.Id == notaId);
+
+        // Otra pestaña guarda un borrador después de que la firma leyó la nota.
+        await using (var otroEditor = new VitaliaDbContext(opciones))
+        {
+            var notaCambiada = await otroEditor.NotasClinicas.SingleAsync(n => n.Id == notaId);
+            notaCambiada.Plan = "Plan actualizado desde otra pestaña";
+            notaCambiada.ActualizadaUtc = notaCambiada.ActualizadaUtc.AddSeconds(1);
+            await otroEditor.SaveChangesAsync();
+        }
+
+        // La firma no debe aceptar una versión clínica diferente de la que validó.
         firma.FirmadaUtc = DateTime.UtcNow;
+        firma.ActualizadaUtc = firma.ActualizadaUtc.AddSeconds(2);
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => firmante.SaveChangesAsync());
+        await firmante.Entry(firma).ReloadAsync();
+
+        // Firma válida y posterior intento obsoleto de sobrescribir el diagnóstico.
+        firma.FirmadaUtc = DateTime.UtcNow;
+        firma.ActualizadaUtc = firma.ActualizadaUtc.AddSeconds(2);
         await firmante.SaveChangesAsync();
 
         borrador.Diagnostico = "Diagnostico obsoleto";
