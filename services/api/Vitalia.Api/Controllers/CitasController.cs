@@ -66,6 +66,8 @@ public sealed class CitasController(VitaliaDbContext db) : ControllerBase
         var cita = await db.Citas.FirstOrDefaultAsync(c => c.Id == id && c.PacienteId == pacienteId);
         if (cita is null) return NotFound();
         if (cita.Estado != "Programada") return Conflict(new { mensaje = "La cita ya está cancelada." });
+        if (await db.NotasClinicas.AnyAsync(n => n.CitaId == cita.Id))
+            return Conflict(new { mensaje = "La cita tiene documentación clínica y no puede cancelarse desde el paciente." });
         cita.Estado = "Cancelada";
         await db.SaveChangesAsync();
         return Ok(new { cita.Id, cita.Estado });
@@ -79,6 +81,8 @@ public sealed class CitasController(VitaliaDbContext db) : ControllerBase
         var cita = await db.Citas.FirstOrDefaultAsync(c => c.Id == id && c.PacienteId == pacienteId);
         if (cita is null) return NotFound();
         if (cita.Estado != "Programada") return Conflict(new { mensaje = "Una cita cancelada no puede reprogramarse." });
+        if (await db.NotasClinicas.AnyAsync(n => n.CitaId == cita.Id))
+            return Conflict(new { mensaje = "Esta cita ya tiene documentación clínica; no puede reprogramarse." });
         if (!await HorarioValido(cita.MedicoId, cita.HospitalId, dto.Fecha, dto.Hora, cita.Id))
             return Conflict(new { mensaje = "El nuevo horario no está disponible." });
         cita.Fecha = dto.Fecha;
