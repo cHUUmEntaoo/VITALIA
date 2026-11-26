@@ -49,7 +49,7 @@ export default function PanelPaciente() {
       const actualizado = await guardarPerfil({
         nombre: datos.nombre.trim(),
         apellido: datos.apellido.trim(),
-        telefono: datos.telefono,
+        telefono: datos.telefono.trim() || null,
         tieneSeguro: datos.asegurado === 'si',
         aseguradora: datos.asegurado === 'si' ? datos.ars : null,
         numeroAfiliacion: datos.asegurado === 'si' ? datos.afiliacion : null,
