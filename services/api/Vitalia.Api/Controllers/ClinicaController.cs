@@ -137,6 +137,10 @@ public sealed class ClinicaController(VitaliaDbContext db) : ControllerBase
         nota.ActualizadaUtc = DateTime.UtcNow;
         Auditar(citaId, "GUARDAR_BORRADOR");
         try { await db.SaveChangesAsync(); }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { mensaje = "La nota fue firmada o modificada mientras guardabas; vuelve a consultarla." });
+        }
         catch (DbUpdateException error) when (error.InnerException is SqlException sql && sql.Number is 2601 or 2627)
         {
             // Unica nota por cita, tambien ante peticiones concurrentes.
@@ -165,7 +169,11 @@ public sealed class ClinicaController(VitaliaDbContext db) : ControllerBase
         nota.ActualizadaUtc = DateTime.UtcNow;
         cita.Estado = "Atendida";
         Auditar(citaId, "FIRMAR_Y_ATENDER");
-        await db.SaveChangesAsync();
+        try { await db.SaveChangesAsync(); }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { mensaje = "La consulta fue firmada simultaneamente; vuelve a abrir la nota." });
+        }
         return Ok(new { cita.Id, cita.Estado, nota.FirmadaUtc });
     }
 }
