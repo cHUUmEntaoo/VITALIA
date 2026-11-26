@@ -130,6 +130,8 @@ public sealed class InstitucionalController(
         var cita = await db.Citas.FirstOrDefaultAsync(c => c.Id == id);
         if (cita is null) return NotFound();
         if (cita.Estado != "Programada") return Conflict(new { mensaje = "La cita ya no está programada." });
+        if (await db.NotasClinicas.AnyAsync(n => n.CitaId == cita.Id))
+            return Conflict(new { mensaje = "La cita tiene documentación clínica y no puede cancelarse desde recepción." });
         cita.Estado = "Cancelada";
         await db.SaveChangesAsync();
         return Ok(new { cita.Id, cita.Estado });
