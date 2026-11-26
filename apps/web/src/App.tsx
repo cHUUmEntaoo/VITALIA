@@ -153,7 +153,7 @@ function App() {
   useEffect(() => { void cargarDatos() }, [cargarDatos])
 
   useEffect(() => {
-    if (!token || vista !== 'horarios' || !medicoHorarios) { setHorarios([]); setHorariosCargadosDe(''); return }
+    if (!token || vista !== 'horarios' || !medicoHorarios) { setHorarios([]); setHorariosCargadosDe(''); setCargandoHorarios(false); return }
     let activo = true
     setHorarios([])
     setHorariosCargadosDe('')
@@ -318,7 +318,7 @@ function App() {
             </form></section>
         </div>}
         {vista === 'horarios' && rol === 'Administrador' && <section className="panel"><div className="panel-title"><h3>Horarios de consulta</h3><small>Reemplaza los tramos del médico seleccionado</small></div>
-          <label className="field-narrow">Profesional<select value={medicoHorarios} onChange={e => { setHorarios([]); setHorariosCargadosDe(''); setCargandoHorarios(true); setMedicoHorarios(e.target.value) }}><option value="">Selecciona un médico</option>{medicos.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}</select></label>
+          <label className="field-narrow">Profesional<select value={medicoHorarios} onChange={e => { setHorarios([]); setHorariosCargadosDe(''); setCargandoHorarios(Boolean(e.target.value)); setMedicoHorarios(e.target.value) }}><option value="">Selecciona un médico</option>{medicos.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}</select></label>
           {cargandoHorarios && <p className="muted">Consultando horarios…</p>}
           {medicoHorario && !cargandoHorarios && horariosCargadosDe === medicoHorarios && <><div className="table-wrap"><table><thead><tr><th>Día</th><th>Sede</th><th>Inicio</th><th>Fin</th><th>Intervalo</th><th></th></tr></thead><tbody>{horarios.map((h, i) => <tr key={i}>
             <td><select value={h.diaSemana} onChange={e => setHorarios(actual => actual.map((x, j) => j === i ? { ...x, diaSemana: Number(e.target.value) } : x))}>{DIAS.map((d, idx) => <option key={d} value={idx}>{d}</option>)}</select></td>
