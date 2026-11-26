@@ -432,6 +432,7 @@ namespace Vitalia.Api.Data.Migrations
                         .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime?>("FirmadaUtc")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Hallazgos")
