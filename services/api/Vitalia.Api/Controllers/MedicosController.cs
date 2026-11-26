@@ -99,6 +99,15 @@ public sealed class MedicosController(VitaliaDbContext db) : ControllerBase
             .Any(g => g.OrderBy(h => h.HoraInicio).Zip(g.OrderBy(h => h.HoraInicio).Skip(1), (a, b) => a.HoraFin > b.HoraInicio).Any(x => x));
         if (solapados) return BadRequest(new { mensaje = "Existen tramos horarios solapados." });
 
+        // Política conservadora: no sustituir turnos de un profesional con reservas futuras.
+        // Evita que un intervalo nuevo se solape con una reserva previa de otra duración.
+        var ahoraLocal = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-4));
+        var hoyLocal = DateOnly.FromDateTime(ahoraLocal.DateTime);
+        var horaActual = TimeOnly.FromDateTime(ahoraLocal.DateTime);
+        if (await db.Citas.AsNoTracking().AnyAsync(c => c.MedicoId == medicoId && c.Estado == "Programada" &&
+            (c.Fecha > hoyLocal || (c.Fecha == hoyLocal && c.Hora > horaActual))))
+            return Conflict(new { mensaje = "El médico tiene citas futuras. Reprograma esas citas antes de sustituir los horarios." });
+
         await using var tx = await db.Database.BeginTransactionAsync();
         await db.HorariosMedicos.Where(h => h.MedicoId == medicoId).ExecuteDeleteAsync();
         foreach (var h in datos.Horarios)
