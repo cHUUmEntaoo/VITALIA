@@ -1,0 +1,16 @@
+{
+    "cli":  {
+                "appVersionSource":  "local"
+            },
+    "build":  {
+                  "preview":  {
+                                  "distribution":  "internal",
+                                  "android":  {
+                                                  "buildType":  "apk"
+                                              },
+                                  "env":  {
+                                              "EXPO_PUBLIC_API_URL":  "http://10.11.48.63:5208"
+                                          }
+                              }
+              }
+}

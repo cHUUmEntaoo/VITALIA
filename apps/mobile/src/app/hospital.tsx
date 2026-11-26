@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { Alert } from 'react-native';
-import { guardarCitaDemo } from '@/lib/citas-demo';
+import { crearCita, obtenerDisponibilidad, obtenerEspecialidades, obtenerHospitales, obtenerMedicos } from '@/lib/vitalia-api';
 const C = {
   verde: '#173D32',
   profundo: '#102D26',
@@ -38,100 +39,8 @@ const pasos: Paso[] = [
   'confirmacion',
 ];
 
-const hospitales = [
-  {
-    id: 'h1',
-    nombre: 'Centro VITALIA Demo 01',
-    detalle: 'Consultas y atención especializada',
-  },
-  {
-    id: 'h2',
-    nombre: 'Hospital VITALIA Demo 02',
-    detalle: 'Atención médica integral',
-  },
-  {
-    id: 'h3',
-    nombre: 'Clínica VITALIA Demo 03',
-    detalle: 'Servicios médicos ambulatorios',
-  },
-];
-
-const especialidades = [
-  {
-    id: 'general',
-    nombre: 'Medicina general',
-    detalle: 'Evaluación y atención primaria',
-  },
-  {
-    id: 'cardiologia',
-    nombre: 'Cardiología',
-    detalle: 'Cuidado del corazón',
-  },
-  {
-    id: 'pediatria',
-    nombre: 'Pediatría',
-    detalle: 'Atención de niños y adolescentes',
-  },
-  {
-    id: 'ginecologia',
-    nombre: 'Ginecología',
-    detalle: 'Salud y bienestar femenino',
-  },
-];
-
-const medicos = [
-  {
-    id: 'm1',
-    nombre: 'Dra. Laura Méndez',
-    especialidad: 'general',
-    detalle: 'Medicina general · Perfil ficticio',
-  },
-  {
-    id: 'm2',
-    nombre: 'Dr. Daniel Reyes',
-    especialidad: 'general',
-    detalle: 'Medicina general · Perfil ficticio',
-  },
-  {
-    id: 'm3',
-    nombre: 'Dr. Gabriel Torres',
-    especialidad: 'cardiologia',
-    detalle: 'Cardiología · Perfil ficticio',
-  },
-  {
-    id: 'm4',
-    nombre: 'Dra. Sofía Castillo',
-    especialidad: 'cardiologia',
-    detalle: 'Cardiología · Perfil ficticio',
-  },
-  {
-    id: 'm5',
-    nombre: 'Dra. Camila Vargas',
-    especialidad: 'pediatria',
-    detalle: 'Pediatría · Perfil ficticio',
-  },
-  {
-    id: 'm6',
-    nombre: 'Dr. Mateo García',
-    especialidad: 'pediatria',
-    detalle: 'Pediatría · Perfil ficticio',
-  },
-  {
-    id: 'm7',
-    nombre: 'Dra. Valentina Cruz',
-    especialidad: 'ginecologia',
-    detalle: 'Ginecología · Perfil ficticio',
-  },
-];
-
-const horarios = [
-  '08:00 AM',
-  '09:30 AM',
-  '11:00 AM',
-  '02:00 PM',
-  '03:30 PM',
-  '05:00 PM',
-];
+type Item = { id: string; nombre: string; detalle: string };
+type MedicoItem = Item & { especialidad: string; fotoUrl: string | null };
 
 const titulos: Record<Paso, string> = {
   hospital: 'Elige tu centro médico.',
@@ -145,12 +54,12 @@ const descripciones: Record<Paso, string> = {
   hospital: 'Selecciona dónde deseas recibir atención.',
   especialidad: 'Te ayudamos a encontrar la atención adecuada.',
   medico: 'Conoce a los profesionales disponibles.',
-  fecha: 'Selecciona una fecha y un horario de demostración.',
-  confirmacion: 'Revisa los detalles de tu cita de demostración.',
+  fecha: 'Selecciona un horario disponible en VITALIA.',
+  confirmacion: 'Revisa la cita antes de confirmarla en el servidor.',
 };
 
 function obtenerFechas() {
-  return Array.from({ length: 6 }, (_, indice) => {
+  return Array.from({ length: 21 }, (_, indice) => {
     const fecha = new Date();
     fecha.setHours(12, 0, 0, 0);
     fecha.setDate(fecha.getDate() + indice + 1);
@@ -183,6 +92,7 @@ type TarjetaProps = {
   detalle: string;
   etiqueta?: string;
   seleccionada: boolean;
+  fotoUrl?: string | null;
   onPress: () => void;
 };
 
@@ -191,6 +101,7 @@ function Tarjeta({
   detalle,
   etiqueta,
   seleccionada,
+  fotoUrl,
   onPress,
 }: TarjetaProps) {
   return (
@@ -203,9 +114,13 @@ function Tarjeta({
         seleccionada && styles.cardSelected,
       ]}
     >
-      <View style={styles.cardIcon}>
-        <Text style={styles.cardIconText}>✚</Text>
-      </View>
+      {fotoUrl ? (
+        <Image source={{ uri: fotoUrl }} style={{ width: 46, height: 46, borderRadius: 23, marginRight: 8 }} />
+      ) : (
+        <View style={styles.cardIcon}>
+          <Text style={styles.cardIconText}>✚</Text>
+        </View>
+      )}
 
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{titulo}</Text>
@@ -238,11 +153,53 @@ export default function HospitalScreen() {
 
   const [paso, setPaso] = useState<Paso>('hospital');
   const [guardando, setGuardando] = useState(false);
+  const [hospitales, setHospitales] = useState<Item[]>([]);
+  const [especialidades, setEspecialidades] = useState<Item[]>([]);
+  const [medicos, setMedicos] = useState<MedicoItem[]>([]);
+  const [horarios, setHorarios] = useState<string[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState('');
   const [hospital, setHospital] = useState<string | null>(null);
   const [especialidad, setEspecialidad] = useState<string | null>(null);
   const [medico, setMedico] = useState<string | null>(null);
   const [fecha, setFecha] = useState<string | null>(null);
   const [hora, setHora] = useState<string | null>(null);
+
+  useEffect(() => {
+    let activo = true;
+    Promise.all([obtenerHospitales(), obtenerEspecialidades()])
+      .then(([listaHospitales, listaEspecialidades]) => {
+        if (!activo) return;
+        setHospitales(listaHospitales.filter(h => h.ciudad === ciudad).map(h => ({ id: String(h.id), nombre: h.nombre, detalle: h.ciudad })));
+        setEspecialidades(listaEspecialidades.filter(e => e.activa).map(e => ({ id: String(e.id), nombre: e.nombre, detalle: e.descripcion })));
+        setErrorCarga('');
+      })
+      .catch(e => { if (activo) setErrorCarga(e instanceof Error ? e.message : 'No pudimos cargar los catálogos.'); })
+      .finally(() => { if (activo) setCargando(false); });
+    return () => { activo = false; };
+  }, [ciudad]);
+
+  useEffect(() => {
+    let activo = true;
+    setMedicos([]);
+    if (hospital && especialidad) {
+      obtenerMedicos(Number(hospital), Number(especialidad))
+        .then(lista => { if (activo) setMedicos(lista.map(m => ({ id: String(m.id), nombre: `${m.nombre} ${m.apellido}`, detalle: m.numeroExequatur ? `Exequátur: ${m.numeroExequatur}` : 'Profesional médico', especialidad, fotoUrl: m.fotoUrl }))); })
+        .catch(e => { if (activo) Alert.alert('No se pudieron cargar los médicos', e instanceof Error ? e.message : 'Error de conexión'); });
+    }
+    return () => { activo = false; };
+  }, [hospital, especialidad]);
+
+  useEffect(() => {
+    let activo = true;
+    setHorarios([]);
+    if (medico && hospital && fecha) {
+      obtenerDisponibilidad(Number(medico), Number(hospital), fecha)
+        .then(lista => { if (activo) setHorarios(lista); })
+        .catch(e => { if (activo) Alert.alert('Disponibilidad', e instanceof Error ? e.message : 'Error de conexión'); });
+    }
+    return () => { activo = false; };
+  }, [medico, hospital, fecha]);
 
   const fechas = obtenerFechas();
 
@@ -262,9 +219,7 @@ export default function HospitalScreen() {
     (item) => item.valor === fecha
   );
 
-  const medicosDisponibles = medicos.filter(
-    (item) => item.especialidad === especialidad
-  );
+  const medicosDisponibles = medicos;
 
   const indicePaso = pasos.indexOf(paso);
 
@@ -276,7 +231,7 @@ export default function HospitalScreen() {
         : paso === 'medico'
           ? medico !== null
           : paso === 'fecha'
-            ? fecha !== null && hora !== null
+            ? fecha !== null && hora !== null && horarios.includes(hora)
             : true;
 
   function retroceder() {
@@ -310,20 +265,13 @@ async function avanzar() {
     setGuardando(true);
 
     try {
-      await guardarCitaDemo({
-        ciudad,
-        hospital: hospitalActual.nombre,
-        especialidad: especialidadActual.nombre,
-        medico: medicoActual.nombre,
-        fecha,
-        hora,
-      });
+      await crearCita(Number(medico), Number(hospital), Number(especialidad), fecha, hora);
 
       router.replace('/mis-citas');
-    } catch {
+    } catch (error) {
       Alert.alert(
         'Error',
-        'No fue posible guardar la cita de demostración.'
+        error instanceof Error ? error.message : 'No fue posible confirmar la cita.'
       );
     } finally {
       setGuardando(false);
@@ -420,9 +368,11 @@ function cambiarHospital(id: string) {
         </View>
 
         <View style={styles.body}>
+          {cargando && <Text style={{ color: C.verde, marginBottom: 12 }}>Cargando hospitales y especialidades...</Text>}
+          {!!errorCarga && <Text style={{ color: '#A44E48', marginBottom: 12 }}>{errorCarga}</Text>}
           <View style={styles.demoBanner}>
             <Text style={styles.demoBannerText}>
-              MODO DEMOSTRACIÓN · DATOS FICTICIOS
+              VITALIA · AGENDAMIENTO EN EL SERVIDOR
             </Text>
           </View>
 
@@ -432,6 +382,7 @@ function cambiarHospital(id: string) {
                 CENTROS MÉDICOS
               </Text>
 
+              {hospitales.length === 0 && !cargando && <Text style={styles.helper}>No hay hospitales disponibles en esta ciudad.</Text>}
               {hospitales.map((item) => (
                 <Tarjeta
                   key={item.id}
@@ -466,15 +417,17 @@ function cambiarHospital(id: string) {
           {paso === 'medico' && (
             <>
               <Text style={styles.sectionTitle}>
-                PROFESIONALES DE DEMOSTRACIÓN
+                PROFESIONALES DISPONIBLES
               </Text>
 
+              {medicosDisponibles.length === 0 && <Text style={styles.helper}>No hay médicos registrados para esta combinación. Administración debe cargar los profesionales aprobados.</Text>}
               {medicosDisponibles.map((item) => (
                 <Tarjeta
                   key={item.id}
                   titulo={item.nombre}
                   detalle={item.detalle}
                   etiqueta={especialidadActual?.nombre}
+                  fotoUrl={item.fotoUrl}
                   seleccionada={medico === item.id}
                   onPress={() => cambiarMedico(item.id)}
                 />
@@ -492,7 +445,7 @@ function cambiarHospital(id: string) {
                 {fechas.map((item) => (
                   <Pressable
                     key={item.valor}
-                    onPress={() => setFecha(item.valor)}
+                    onPress={() => { setFecha(item.valor); setHora(null); }}
                     accessibilityRole="button"
                     accessibilityState={{
                       selected: fecha === item.valor,
@@ -540,6 +493,7 @@ function cambiarHospital(id: string) {
                 SELECCIONA UN HORARIO
               </Text>
 
+              {horarios.length === 0 && <Text style={styles.helper}>Selecciona una fecha con horarios disponibles. Si está vacía, no hay cupos para ese día.</Text>}
               <View style={styles.timeGrid}>
                 {horarios.map((item) => (
                   <Pressable
@@ -569,8 +523,8 @@ function cambiarHospital(id: string) {
               </View>
 
               <Text style={styles.helper}>
-                Fechas y horarios ilustrativos. La disponibilidad
-                real se consultará posteriormente con la API.
+                Los horarios mostrados se consultan en tiempo real
+                con el servidor de VITALIA.
               </Text>
             </>
           )}
@@ -586,8 +540,8 @@ function cambiarHospital(id: string) {
               </Text>
 
               <Text style={styles.successDescription}>
-                Has completado el recorrido de demostración
-                de VITALIA Pacientes.
+                Revisa los datos y confirma tu reserva.
+                Se registrará en VITALIA al continuar.
               </Text>
 
               <View style={styles.summary}>
@@ -660,9 +614,9 @@ function cambiarHospital(id: string) {
           >
             <Text style={styles.buttonText}>
               {paso === 'confirmacion'
-                ? 'Volver al inicio'
+                ? 'Confirmar mi cita'
                 : paso === 'fecha'
-                  ? 'Ver resumen de demostración'
+                  ? 'Revisar la cita'
                   : 'Continuar'}
             </Text>
 

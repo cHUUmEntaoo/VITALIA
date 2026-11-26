@@ -5,14 +5,15 @@ import {
   StatusBar, StyleSheet, Text, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { obtenerDisponibilidad } from '@/lib/vitalia-api';
 import {
-  obtenerCitasDemo, reprogramarCitaDemo, type CitaDemo,
-} from '@/lib/citas-demo';
+  obtenerCitasServidor, reprogramarCitaServidor, type CitaServidor,
+} from '@/lib/citas-servidor';
 
 const verde = '#173D32';
 const marfil = '#F8F5ED';
 const dorado = '#C6A76A';
-const horas = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
+
 
 function fechasDisponibles() {
   return Array.from({ length: 21 }, (_, i) => {
@@ -26,28 +27,41 @@ function fechasDisponibles() {
 export default function Reprogramar() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const [cita, setCita] = useState<CitaDemo | null>(null);
+  const [cita, setCita] = useState<CitaServidor | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
+  const [horas, setHoras] = useState<string[]>([]);
   const fechas = useMemo(() => fechasDisponibles(), []);
 
   useEffect(() => {
     let activo = true;
-    obtenerCitasDemo()
+    obtenerCitasServidor()
       .then((lista) => { if (activo) setCita(lista.find((item) => item.id === id) ?? null); })
       .catch(() => Alert.alert('Error', 'No se pudo consultar la cita.'))
       .finally(() => { if (activo) setCargando(false); });
     return () => { activo = false; };
   }, [id]);
 
+  useEffect(() => {
+    let activo = true;
+    setHoras([]);
+    setHora('');
+    if (cita && fecha) {
+      obtenerDisponibilidad(cita.medicoId, cita.hospitalId, fecha)
+        .then(lista => { if (activo) setHoras(lista); })
+        .catch(e => { if (activo) Alert.alert('Disponibilidad', e instanceof Error ? e.message : 'No hay conexión con el servidor.'); });
+    }
+    return () => { activo = false; };
+  }, [cita, fecha]);
+
   async function guardar() {
     if (!id || !fecha || !hora || !cita || cita.estado !== 'programada') return;
     try {
       setGuardando(true);
-      await reprogramarCitaDemo(id, fecha, hora);
-      Alert.alert('Cita actualizada', 'La fecha y hora de demostración fueron modificadas en este teléfono.', [
+      await reprogramarCitaServidor(id, fecha, hora);
+      Alert.alert('Cita actualizada', 'Tu cita fue actualizada en el servidor.', [
         { text: 'Ver mis citas', onPress: () => router.replace('/mis-citas') },
       ]);
     } catch {
@@ -66,14 +80,14 @@ export default function Reprogramar() {
           <Text style={s.logo}>✚ VITALIA</Text>
           <Text style={s.eyebrow}>GESTIÓN DE CITAS</Text>
           <Text style={s.title}>Reprogramar cita</Text>
-          <Text style={s.subtitle}>Selecciona otra fecha y hora de demostración.</Text>
+          <Text style={s.subtitle}>Selecciona una nueva fecha y horario disponible.</Text>
         </View>
         <View style={s.body}>
-          <Text style={s.demo}>HORARIOS FICTICIOS · SIN RESERVA REAL</Text>
+          <Text style={s.demo}>HORARIOS DISPONIBLES EN VITALIA</Text>
           {cargando ? <ActivityIndicator color={verde} style={{ marginTop: 40 }} /> : !cita ? (
             <View style={s.card}><Text style={s.heading}>No encontramos la cita solicitada.</Text></View>
-          ) : cita.estado === 'cancelada' ? (
-            <View style={s.card}><Text style={s.heading}>Una cita cancelada no se puede reprogramar.</Text></View>
+          ) : cita.estado !== 'programada' ? (
+            <View style={s.card}><Text style={s.heading}>Esta cita ya no está programada y no puede reprogramarse.</Text></View>
           ) : (
             <>
               <View style={s.card}>
@@ -92,6 +106,7 @@ export default function Reprogramar() {
                 ))}
               </View>
               <Text style={s.section}>NUEVA HORA</Text>
+              {fecha && horas.length === 0 && <Text style={s.details}>No hay horarios disponibles para el día seleccionado.</Text>}
               <View style={s.grid}>
                 {horas.map((h) => (
                   <Pressable key={h} style={[s.option, hora === h && s.selected]}

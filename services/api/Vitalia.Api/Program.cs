@@ -64,6 +64,7 @@ builder.Services.AddAuthorization();
 
 
 builder.Services.AddScoped<IHospitalService, HospitalSqlService>();
+builder.Services.AddScoped<IEspecialidadService, EspecialidadSqlService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -82,6 +83,14 @@ if (app.Environment.IsDevelopment())
         .GetRequiredService<RoleManager<IdentityRole>>();
 
     await RoleSeeder.SeedAsync(roleManager);
+
+
+    // Cargar especialidades médicas iniciales.
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<VitaliaDbContext>();
+
+    await EspecialidadSeeder.SeedAsync(dbContext);
+
 
     // Aprovisionar el administrador inicial
     // únicamente cuando esté habilitado.

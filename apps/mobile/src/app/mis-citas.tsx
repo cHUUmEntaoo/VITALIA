@@ -13,10 +13,10 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  cancelarCitaDemo,
-  obtenerCitasDemo,
-  type CitaDemo,
-} from '@/lib/citas-demo';
+  cancelarCitaServidor,
+  obtenerCitasServidor,
+  type CitaServidor,
+} from '@/lib/citas-servidor';
 
 const C = {
   verde: '#173D32',
@@ -30,11 +30,11 @@ const C = {
 export default function MisCitasScreen() {
   const router = useRouter();
 
-  const [citas, setCitas] = useState<CitaDemo[]>([]);
+  const [citas, setCitas] = useState<CitaServidor[]>([]);
   const [cargando, setCargando] = useState(true);
 
   const actualizar = useCallback(async () => {
-    const resultado = await obtenerCitasDemo();
+    const resultado = await obtenerCitasServidor();
     setCitas(resultado);
   }, []);
 
@@ -46,7 +46,7 @@ export default function MisCitasScreen() {
         setCargando(true);
 
         try {
-          const resultado = await obtenerCitasDemo();
+          const resultado = await obtenerCitasServidor();
 
           if (activo) {
             setCitas(resultado);
@@ -55,7 +55,7 @@ export default function MisCitasScreen() {
           if (activo) {
             Alert.alert(
               'Error',
-              'No se pudieron cargar las citas de demostración.'
+              'No se pudieron cargar las citas registradas.'
             );
           }
         } finally {
@@ -76,7 +76,7 @@ export default function MisCitasScreen() {
   function confirmarCancelacion(id: string) {
     Alert.alert(
       'Cancelar cita',
-      '¿Deseas cancelar esta cita de demostración?',
+      '¿Deseas cancelar esta cita?',
       [
         {
           text: 'Volver',
@@ -87,7 +87,7 @@ export default function MisCitasScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await cancelarCitaDemo(id);
+              await cancelarCitaServidor(id);
               await actualizar();
             } catch {
               Alert.alert(
@@ -149,14 +149,14 @@ export default function MisCitasScreen() {
 
           <Text style={styles.subtitle}>
             Consulta y administra tus citas
-            de demostración.
+            guardadas en VITALIA.
           </Text>
         </View>
 
         <View style={styles.body}>
           <View style={styles.demoBanner}>
             <Text style={styles.demoBannerText}>
-              DEMOSTRACIÓN · GUARDADO LOCAL
+              CITAS REGISTRADAS EN VITALIA
             </Text>
           </View>
 
@@ -190,6 +190,7 @@ export default function MisCitasScreen() {
               {citas.map((cita) => {
                 const cancelada =
                   cita.estado === 'cancelada';
+                const programada = cita.estado === 'programada';
 
                 return (
                   <View
@@ -215,9 +216,7 @@ export default function MisCitasScreen() {
                               styles.cancelledText,
                           ]}
                         >
-                          {cancelada
-                            ? 'Cancelada'
-                            : 'Programada'}
+                          {cancelada ? 'Cancelada' : programada ? 'Programada' : 'Atendida'}
                         </Text>
                       </View>
                     </View>
@@ -254,7 +253,7 @@ export default function MisCitasScreen() {
                       {cita.hora}
                     </Text>
 
-                    {!cancelada && (
+                    {programada && (
                 <Pressable
                   style={{ backgroundColor: C.verde, borderRadius: 10, paddingVertical: 13, marginTop: 7, alignItems: 'center' }}
                   onPress={() => router.push({ pathname: '/reprogramar', params: { id: cita.id } })}
@@ -263,7 +262,7 @@ export default function MisCitasScreen() {
                   <Text style={{ color: C.blanco, fontWeight: '700', fontSize: 13 }}>Reprogramar cita</Text>
                 </Pressable>
               )}
-              {!cancelada && (
+              {programada && (
                       <Pressable
                         style={styles.cancelButton}
                         onPress={() =>

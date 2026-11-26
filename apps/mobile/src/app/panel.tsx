@@ -5,8 +5,13 @@ import {
   StatusBar, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { actualizarPacienteDemo, leerPacienteDemo, type PacienteDemo } from '@/lib/paciente-demo';
-import { obtenerCitasDemo, type CitaDemo } from '@/lib/citas-demo';
+import { guardarPerfil, obtenerPerfil, type PerfilPaciente } from '@/lib/vitalia-api';
+import { obtenerCitasServidor, type CitaServidor } from '@/lib/citas-servidor';
+
+type PacienteUi = { nombre: string; apellido: string; correo: string; telefono: string; asegurado: 'si' | 'no'; ars: string; afiliacion: string };
+function desdeServidor(p: PerfilPaciente): PacienteUi {
+  return { nombre: p.nombre, apellido: p.apellido, correo: p.correo ?? '', telefono: p.telefono ?? '', asegurado: p.tieneSeguro ? 'si' : 'no', ars: p.aseguradora ?? '', afiliacion: p.numeroAfiliacion ?? '' };
+}
 
 const verde = '#173D32';
 const dorado = '#C6A76A';
@@ -17,37 +22,40 @@ export default function PanelPaciente() {
   const router = useRouter();
   const params = useLocalSearchParams<{ vista?: string }>();
   const vista = params.vista === 'seguro' ? 'seguro' : params.vista === 'notificaciones' ? 'notificaciones' : 'perfil';
-  const [datos, setDatos] = useState<PacienteDemo | null>(null);
-  const [citas, setCitas] = useState<CitaDemo[]>([]);
+  const [datos, setDatos] = useState<PacienteUi | null>(null);
+  const [citas, setCitas] = useState<CitaServidor[]>([]);
   const [guardando, setGuardando] = useState(false);
 
   useFocusEffect(useCallback(() => {
     let activo = true;
-    Promise.all([leerPacienteDemo(), obtenerCitasDemo()])
-      .then(([perfil, agenda]) => { if (activo) { setDatos(perfil); setCitas(agenda); } })
-      .catch(() => { if (activo) Alert.alert('Error', 'No se pudieron cargar los datos locales.'); });
+    Promise.all([obtenerPerfil(), obtenerCitasServidor()])
+      .then(([perfil, agenda]) => { if (activo) { setDatos(desdeServidor(perfil)); setCitas(agenda); } })
+      .catch(() => { if (activo) Alert.alert('Error', 'No se pudo consultar el servidor.'); });
     return () => { activo = false; };
   }, []));
 
-  function modificar(campo: keyof PacienteDemo, valor: string) {
+  function modificar(campo: keyof PacienteUi, valor: string) {
     if (datos) setDatos({ ...datos, [campo]: valor });
   }
 
   async function guardar() {
     if (!datos) return;
     if (!datos.nombre.trim()) {
-      Alert.alert('Nombre requerido', 'Completa el nombre de demostración.');
+      Alert.alert('Nombre requerido', 'Completa tu nombre.');
       return;
     }
     try {
       setGuardando(true);
-      await actualizarPacienteDemo({
-        ...datos,
+      const actualizado = await guardarPerfil({
         nombre: datos.nombre.trim(),
-        ars: datos.asegurado === 'si' ? datos.ars : '',
-        afiliacion: datos.asegurado === 'si' ? datos.afiliacion : '',
+        apellido: datos.apellido.trim(),
+        telefono: datos.telefono,
+        tieneSeguro: datos.asegurado === 'si',
+        aseguradora: datos.asegurado === 'si' ? datos.ars : null,
+        numeroAfiliacion: datos.asegurado === 'si' ? datos.afiliacion : null,
       });
-      Alert.alert('Guardado local', 'Información de demostración actualizada en este dispositivo.');
+      setDatos(desdeServidor(actualizado));
+      Alert.alert('Cambios guardados', 'Tu información fue guardada en VITALIA.');
     } catch {
       Alert.alert('Error', 'No fue posible guardar los cambios.');
     } finally {
@@ -55,13 +63,14 @@ export default function PanelPaciente() {
     }
   }
 
-  function campo(etiqueta: string, nombre: keyof PacienteDemo, placeholder: string) {
+  function campo(etiqueta: string, nombre: keyof PacienteUi, placeholder: string) {
     return (
       <View style={s.field} key={nombre}>
         <Text style={s.label}>{etiqueta}</Text>
         <TextInput
           style={s.input}
           value={datos?.[nombre] ?? ''}
+          editable={nombre !== 'correo'}
           onChangeText={(valor) => modificar(nombre, valor)}
           placeholder={placeholder}
           placeholderTextColor="#96A097"
@@ -83,18 +92,19 @@ export default function PanelPaciente() {
           <Text style={s.brand}>✚ VITALIA</Text>
           <Text style={s.eyebrow}>PORTAL DEL PACIENTE</Text>
           <Text style={s.title}>{titulo}</Text>
-          <Text style={s.subtitle}>Información local para demostrar el funcionamiento de VITALIA.</Text>
+          <Text style={s.subtitle}>Información del paciente almacenada en VITALIA.</Text>
         </View>
         <View style={s.content}>
-          <Text style={s.banner}>DEMOSTRACIÓN · DATOS FICTICIOS</Text>
+          <Text style={s.banner}>VITALIA · PERFIL EN EL SERVIDOR</Text>
           {!datos ? <ActivityIndicator color={verde} style={{ marginTop: 35 }} /> : (
             <>
               {vista === 'perfil' && (
                 <View style={s.card}>
                   <Text style={s.section}>INFORMACIÓN PERSONAL</Text>
-                  {campo('Nombre', 'nombre', 'Paciente Demo')}
-                  {campo('Correo ficticio', 'correo', 'demo@ejemplo.com')}
-                  {campo('Teléfono ficticio', 'telefono', '000-000-0000')}
+                  {campo('Nombre', 'nombre', 'Nombre')}
+                  {campo('Apellido', 'apellido', 'Apellido')}
+                  {campo('Correo electrónico (solo lectura)', 'correo', 'correo@ejemplo.com')}
+                  {campo('Teléfono', 'telefono', '809-000-0000')}
                   <Pressable style={s.button} onPress={guardar} disabled={guardando}>
                     <Text style={s.buttonText}>{guardando ? 'Guardando...' : 'Guardar cambios'}</Text>
                   </Pressable>
@@ -116,7 +126,7 @@ export default function PanelPaciente() {
                   </View>
                   {datos.asegurado === 'si' && (
                     <>
-                      <Text style={s.label}>Aseguradora (selección simulada)</Text>
+                      <Text style={s.label}>Aseguradora</Text>
                       <View style={s.tags}>
                         {aseguradoras.map((ars) => (
                           <Pressable key={ars} style={[s.tag, datos.ars === ars && s.chosen]}
@@ -125,7 +135,7 @@ export default function PanelPaciente() {
                           </Pressable>
                         ))}
                       </View>
-                      {campo('Número ficticio de afiliación', 'afiliacion', 'DEMO-0000')}
+                      {campo('Número de afiliación', 'afiliacion', '0000')}
                     </>
                   )}
                   <Pressable style={s.button} onPress={guardar} disabled={guardando}>
@@ -136,13 +146,13 @@ export default function PanelPaciente() {
               )}
               {vista === 'notificaciones' && (
                 <View style={s.card}>
-                  <Text style={s.section}>AVISOS LOCALES</Text>
+                  <Text style={s.section}>AVISOS DENTRO DE LA APP</Text>
                   <Text style={s.itemTitle}>Bienvenido a VITALIA</Text>
-                  <Text style={s.itemText}>Ya puedes explorar el portal de demostración.</Text>
+                  <Text style={s.itemText}>Ya puedes consultar VITALIA en línea.</Text>
                   <View style={s.divider} />
-                  <Text style={s.itemTitle}>Agenda de demostración</Text>
+                  <Text style={s.itemTitle}>Tus citas</Text>
                   <Text style={s.itemText}>
-                    Tienes {citas.filter((c) => c.estado === 'programada').length} cita(s) programada(s) en este teléfono.
+                    Tienes {citas.filter((c) => c.estado === 'programada').length} cita(s) programada(s) en VITALIA.
                   </Text>
                   {citas.slice(0, 5).map((c) => (
                     <View key={c.id} style={s.notice}>
