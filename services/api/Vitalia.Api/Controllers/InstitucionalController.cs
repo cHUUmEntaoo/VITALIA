@@ -45,16 +45,19 @@ public sealed class InstitucionalController(
 
     [HttpGet("citas")]
     [Authorize(Roles = "Administrador,Recepcionista")]
-    public async Task<IActionResult> Citas([FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta)
+    public async Task<IActionResult> Citas([FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta,
+        [FromQuery] int pagina = 1, [FromQuery] int tamanoPagina = 100)
     {
+        if (pagina is < 1 or > 100000 || tamanoPagina is < 1 or > 200)
+            return BadRequest(new { mensaje = "Pagina o tamaño de pagina invalido." });
         var desdeFecha = desde ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-7));
         var hastaFecha = hasta ?? desdeFecha.AddDays(90);
         if (hastaFecha < desdeFecha || hastaFecha.DayNumber - desdeFecha.DayNumber > 365)
             return BadRequest(new { mensaje = "Selecciona un intervalo válido de hasta 365 días." });
         var citas = await db.Citas.AsNoTracking()
             .Where(c => c.Fecha >= desdeFecha && c.Fecha <= hastaFecha)
-            .OrderBy(c => c.Fecha).ThenBy(c => c.Hora)
-            .Take(500)
+            .OrderBy(c => c.Fecha).ThenBy(c => c.Hora).ThenBy(c => c.Id)
+            .Skip((pagina - 1) * tamanoPagina).Take(tamanoPagina)
             .Select(c => new
             {
                 c.Id, c.Fecha, c.Hora, c.Estado, c.PacienteId,
@@ -69,15 +72,17 @@ public sealed class InstitucionalController(
 
     [HttpGet("pacientes")]
     [Authorize(Roles = "Administrador,Recepcionista")]
-    public async Task<IActionResult> Pacientes()
+    public async Task<IActionResult> Pacientes([FromQuery] int pagina = 1, [FromQuery] int tamanoPagina = 100)
     {
+        if (pagina is < 1 or > 100000 || tamanoPagina is < 1 or > 200)
+            return BadRequest(new { mensaje = "Pagina o tamaño de pagina invalido." });
         var rolPaciente = await db.Roles.AsNoTracking().Where(r => r.Name == "Paciente")
             .Select(r => r.Id).FirstOrDefaultAsync();
         if (rolPaciente is null) return Ok(Array.Empty<object>());
         var datos = await db.Users.AsNoTracking()
             .Where(u => db.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == rolPaciente))
-            .OrderBy(u => u.Apellido).ThenBy(u => u.Nombre)
-            .Take(500)
+            .OrderBy(u => u.Apellido).ThenBy(u => u.Nombre).ThenBy(u => u.Id)
+            .Skip((pagina - 1) * tamanoPagina).Take(tamanoPagina)
             .Select(u => new { u.Id, u.Nombre, u.Apellido, Correo = u.Email, Telefono = u.PhoneNumber })
             .ToListAsync();
         return Ok(datos);
@@ -96,15 +101,17 @@ public sealed class InstitucionalController(
 
     [HttpGet("mi-agenda")]
     [Authorize(Roles = "Medico")]
-    public async Task<IActionResult> MiAgenda()
+    public async Task<IActionResult> MiAgenda([FromQuery] int pagina = 1, [FromQuery] int tamanoPagina = 100)
     {
+        if (pagina is < 1 or > 100000 || tamanoPagina is < 1 or > 200)
+            return BadRequest(new { mensaje = "Pagina o tamaño de pagina invalido." });
         var medicoId = await MedicoActualId();
         if (medicoId is null) return Conflict(new { mensaje = "Tu usuario no está vinculado a un médico. Solicita al administrador que complete el vínculo." });
         var fechaInicio = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         return Ok(await db.Citas.AsNoTracking()
             .Where(c => c.MedicoId == medicoId && c.Fecha >= fechaInicio)
-            .OrderBy(c => c.Fecha).ThenBy(c => c.Hora)
-            .Take(500)
+            .OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora).ThenByDescending(c => c.Id)
+            .Skip((pagina - 1) * tamanoPagina).Take(tamanoPagina)
             .Select(c => new
             {
                 c.Id, c.Fecha, c.Hora, c.Estado,
